@@ -1091,7 +1091,9 @@ void eltwise(
 #endif
 
 __kernel
-__attribute__((max_work_group_size(1,1,LRN_MAX_LOCAL_SIZE))) // (x,y,z)
+//__attribute__((max_work_group_size(1,1,LRN_MAX_LOCAL_SIZE))) // (x,y,z)
+// ToDo: Spec must have changed, max_work_group_size(size_t) is the signature now.
+__attribute__((max_work_group_size(LRN_MAX_LOCAL_SIZE)))
 void lrn(
 			// Params Ports
 			uchar data_dim1,

@@ -1,18 +1,19 @@
 #set source and target for host
-HOST_EXE  = run.exe
+#HOST_EXE  = run.exe
+HOST_EXE = run
 HOST_SRCS = ./host/main_yolo_3.8.cpp ../common/ocl_util.cpp ../common/timer.cpp ./host/utility/region.cpp ./host/utility/box.cpp ./host/utility/showboxes.cpp
 HOST_OBJS = $(HOST_SRCS:%.cpp=%.o)
 HOST_INCS = ../common
 HOST_DEBUG =
 
 #if you are loading images from OpenCV interfaces please set to 1
-USE_OPENCV = 1
+USE_OPENCV = 0
 
 #set source and target for device
 #supported vendors are xilinx, altera, amd
 VENDOR = altera
 #select the host archecture  x86|arm32
-PLATFORM = x86
+PLATFORM = arm32
 #optional flows are hw|hw_emu|sw_emu|report|profile
 #hw      -> generate hw for deployment
 #hw_emu  -> generate waveform for SDAccel

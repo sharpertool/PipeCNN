@@ -1,5 +1,5 @@
 #set source and target for host
-HOST_EXE  = run.exe
+HOST_EXE  = pipe_run
 HOST_SRCS = ./host/main.cpp ../common/ocl_util.cpp ../common/timer.cpp
 HOST_OBJS = $(HOST_SRCS:%.cpp=%.o)
 HOST_INCS = ../common
@@ -9,8 +9,15 @@ HOST_DEBUG =
 #BSP_DIR = /home/fpga/intelFPGA_pro/19.1/hld/board/a10_ref
 #BSP_DIR = /home/fpga/intelFPGA_pro/19.3/hld/board/a10_ref
 #BSP_DIR = /home/fpga/intelFPGA_pro/BSP/de5a_net_ddr4
-BSP_DIR = C:\intelFPGA_pro\19.3\hld\board\a10_ref
+#BSP_DIR = C:\intelFPGA_pro\19.3\hld\board\a10_ref
 #BSP_DIR = /home/fpga/intelFPGA_pro/BSP/f10a_bsp_181/bsp_1801/f10a_remote_bsp
+#BSP_DIR = /home/edhenderson/intelFPGA/19.1/hld/board/c5soc/
+
+BSP_BOARD = de10_nano_sharedonly
+#BOARD_OPT = -board-package=$(BSP_DIR)
+BOARD_OPT = -board=$(BSP_BOARD)
+#BOARD_OPT = -board-package=..
+#BOARD_OPT =
 
 #if you are loading images from OpenCV interfaces please set to 1
 USE_OPENCV = 0
@@ -18,8 +25,8 @@ USE_OPENCV = 0
 #set source and target for device
 #supported vendors are xilinx, altera, amd
 VENDOR = altera
-#select the host archecture  x86|arm32
-PLATFORM = x86
+#select the host architecture  x86|arm32
+PLATFORM = arm32
 #optional flows are hw|hw_emu|sw_emu|report|profile|rtl|hw_sim
 #hw      -> generate hw for deployment
 #hw_emu  -> generate waveform for SDAccel
@@ -30,7 +37,7 @@ PLATFORM = x86
 #profile -> insert performance counters in fpga for dynamic profiling
 #init    -> initialization for incremental hw compilation with reduced time
 #fast    -> fast incremental compilation with reduced time
-FLOW        = rtl
+FLOW        = hw
 #select which kernel file is used
 ifeq ($(VENDOR),xilinx)
 KERNEL_SRCS = ./device/conv_pipe_xilinx.cl
@@ -123,21 +130,21 @@ endif
 else ifeq ($(VENDOR),altera)
 OCC = aoc
 ifeq ($(FLOW),sw_emu)
-OCCFLAGS = -v -report -march=emulator -emulator-channel-depth-model=strict -I device/RTL -L device/RTL -l rtl_lib.aoclib -board-package=$(BSP_DIR)
+OCCFLAGS = -v -report -march=emulator -emulator-channel-depth-model=strict -I device/RTL -L device/RTL -l rtl_lib.aoclib $(BOARD_OPT)
 else ifeq ($(FLOW),hw)
-OCCFLAGS = -v -report -seed=3  -I device/RTL -L device/RTL -l rtl_lib.aoclib -board-package=$(BSP_DIR)
+OCCFLAGS = -v -report -seed=3  -I device/RTL -L device/RTL -l rtl_lib.aoclib $(BOARD_OPT)
 else ifeq ($(FLOW),init)
-OCCFLAGS = -v -report -seed=3  -incremental -I device/RTL -L device/RTL -l rtl_lib.aoclib -board-package=$(BSP_DIR)
+OCCFLAGS = -v -report -seed=3  -incremental -I device/RTL -L device/RTL -l rtl_lib.aoclib $(BOARD_OPT)
 else ifeq ($(FLOW),fast)
-OCCFLAGS = -v -report -seed=3  -incremental -fast-compile -I device/RTL -L device/RTL -l rtl_lib.aoclib -board-package=$(BSP_DIR)
+OCCFLAGS = -v -report -seed=3  -incremental -fast-compile -I device/RTL -L device/RTL -l rtl_lib.aoclib $(BOARD_OPT)
 else ifeq ($(FLOW),profile)
-OCCFLAGS = -v -report -profile -I device/RTL -L device/RTL -l rtl_lib.aoclib -board-package=$(BSP_DIR)
+OCCFLAGS = -v -report -profile -I device/RTL -L device/RTL -l rtl_lib.aoclib $(BOARD_OPT)
 else ifeq ($(FLOW),report)
-OCCFLAGS = -v -c -report -I device/RTL -L device/RTL -l rtl_lib.aoclib -board-package=$(BSP_DIR)
+OCCFLAGS = -v -c -report -I device/RTL -L device/RTL -l rtl_lib.aoclib $(BOARD_OPT)
 else ifeq ($(FLOW),rtl)
-OCCFLAGS = -v -rtl -report -fmax=300  -I device/RTL -L device/RTL -l rtl_lib.aoclib -board-package=$(BSP_DIR)
+OCCFLAGS = -v -rtl -report -fmax=300  -I device/RTL -L device/RTL -l rtl_lib.aoclib $(BOARD_OPT)
 else ifeq ($(FLOW),hw_sim)
-OCCFLAGS = -v -report -march=simulator -ghdl -I device/RTL -L device/RTL -l rtl_lib.aoclib -board-package=$(BSP_DIR)
+OCCFLAGS = -v -report -march=simulator -ghdl -I device/RTL -L device/RTL -l rtl_lib.aoclib $(BOARD_OPT)
 endif
 # misc options for altera
 # add support for arbitrary precision integers
@@ -171,15 +178,16 @@ $(HOST_EXE): $(HOST_OBJS)
 	$(CXX) $(OCV_LIBDIRS) $(OCV_INCLUDES) $(CXXFLAGS) -c $< -o $@ $(COMP_CONFIG) $(OCV_LIBS)
 
 $(DEV_EXE): $(KERNEL_SRCS)
+	echo "Building output file $(DEV_EXE) with $(OCC)"
 	$(OCC) $(OCCFLAGS) $< -o $@
 
 .PHONY: run
 run:
-	./run.exe $(KERNEL_NAME).aocx
+	./$(HOST_EXE) $(KERNEL_NAME).aocx
 
 .PHONY: log
 log:
-	./run.exe $(KERNEL_NAME).aocx | tee >run.log
+	./$(HOST_EXE) $(KERNEL_NAME).aocx | tee >run.log
 
 .PHONY: clean
 clean:
